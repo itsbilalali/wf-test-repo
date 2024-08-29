@@ -23,7 +23,9 @@ jobs:
         run: git fetch --all
 
       - name: Checkout main branch
-        run: git checkout main
+        run: |
+          git checkout main
+          git checkout dev
 
       - name: Cherry-pick the entire range of PR commits into main
         run: |
