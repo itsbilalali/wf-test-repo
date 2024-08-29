@@ -1,49 +1,95 @@
-name: Label Triggered PR to Main
+# name: Label Triggered PR to Main
+
+# on:
+#   pull_request:
+#     types:
+#       - labeled
+
+# jobs:
+#   pr-to-main:
+#     if: github.event.pull_request.state == 'closed' && github.event.label.name == 'merge-to-main'
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout the code
+#         uses: actions/checkout@v3
+
+#       - name: Setup Git
+#         run: |
+#           git config user.name "GitHub Actions"
+#           git config user.email "actions@github.com"
+
+#       - name: Fetch all branches
+#         run: git fetch --all
+
+#       - name: Checkout dev branch
+#         run: git checkout dev
+
+#       - name: Cherry-pick the entire range of PR commits into dev
+#         run: |
+#           # Identify the base commit (before the PR) and the head commit (last commit in the PR)
+#           BASE_COMMIT=$(git merge-base origin/dev origin/${{ github.event.pull_request.head.ref }})
+#           # BASE_COMMIT=${{ github.event.pull_request.base.sha }}
+#           echo $BASE_COMMIT
+
+#           HEAD_COMMIT=${{ github.event.pull_request.head.sha }}
+          
+#           # Cherry-pick all commits from the PR range
+#           git cherry-pick ${BASE_COMMIT}..${HEAD_COMMIT}
+
+#       - name: Checkout main branch
+#         run: git checkout main
+
+#       - name: Push changes to main branch
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}
+#         run: |
+#           echo "Using GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}"
+#           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+#           git push origin main
+
+
+
+name: Merge PR to Main
 
 on:
   pull_request:
-    types:
-      - labeled
+    types: [labeled]
+    branches:
+      - dev
 
 jobs:
-  pr-to-main:
-    if: github.event.pull_request.state == 'closed' && github.event.label.name == 'merge-to-main'
+  cherry_pick_and_merge:
+    if: github.event.label.name == 'merge-to-main'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout the code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for all branches
 
-      - name: Setup Git
+      - name: Set up Git
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-      - name: Fetch all branches
-        run: git fetch --all
-
-      - name: Checkout dev branch
-        run: git checkout dev
-
-      - name: Cherry-pick the entire range of PR commits into dev
+      - name: Get the PR number and commits
+        id: get_pr_commits
         run: |
-          # Identify the base commit (before the PR) and the head commit (last commit in the PR)
-          BASE_COMMIT=$(git merge-base origin/dev origin/${{ github.event.pull_request.head.ref }})
-          # BASE_COMMIT=${{ github.event.pull_request.base.sha }}
-          echo $BASE_COMMIT
-
-          HEAD_COMMIT=${{ github.event.pull_request.head.sha }}
-          
-          # Cherry-pick all commits from the PR range
-          git cherry-pick ${BASE_COMMIT}..${HEAD_COMMIT}
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          PR_COMMITS=$(git log dev --pretty=format:"%H" --grep "Merge pull request #$PR_NUMBER")
+          echo "PR_COMMITS=$PR_COMMITS" >> $GITHUB_ENV
 
       - name: Checkout main branch
-        run: git checkout main
-
-      - name: Push changes to main branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}
         run: |
-          echo "Using GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          git checkout main
+
+      - name: Cherry-pick the PR commits
+        run: |
+          for commit in ${{ env.PR_COMMITS }}; do
+            git cherry-pick $commit
+          done
+
+      - name: Push changes to main
+        run: |
           git push origin main
