@@ -30,7 +30,7 @@ jobs:
       - name: Cherry-pick the entire range of PR commits into main
         run: |
           # Identify the base commit (before the PR) and the head commit (last commit in the PR)
-          BASE_COMMIT=$(git merge-base dev origin/${{ github.event.pull_request.head.ref }})
+          BASE_COMMIT=$(git merge-base origin/dev origin/${{ github.event.pull_request.head.ref }})
           HEAD_COMMIT=${{ github.event.pull_request.head.sha }}
           
           # Cherry-pick all commits from the PR range
