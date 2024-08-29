@@ -1,4 +1,3 @@
-
 name: Label Triggered PR to Main
 
 on:
@@ -28,11 +27,12 @@ jobs:
 
       - name: Cherry-pick the PR commit(s) into main
         run: |
-          git cherry-pick -x ${{ github.event.pull_request.merge_commit_sha }}
-      
+          git cherry-pick -x ${{ github.event.pull_request.head.sha }}
+
       - name: Push changes to main branch
         env:
           GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}
         run: |
+          echo "Using GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
           git push origin main
