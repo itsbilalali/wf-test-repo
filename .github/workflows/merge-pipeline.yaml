@@ -25,9 +25,14 @@ jobs:
       - name: Checkout main branch
         run: git checkout main
 
-      - name: Cherry-pick the PR commit(s) into main
+      - name: Cherry-pick the entire range of PR commits into main
         run: |
-          git cherry-pick -x ${{ github.event.pull_request.head.sha }}
+          # Identify the base commit (before the PR) and the head commit (last commit in the PR)
+          BASE_COMMIT=$(git merge-base main ${{ github.event.pull_request.head.ref }})
+          HEAD_COMMIT=${{ github.event.pull_request.head.sha }}
+          
+          # Cherry-pick all commits from the PR range
+          git cherry-pick ${BASE_COMMIT}..${HEAD_COMMIT}
 
       - name: Push changes to main branch
         env:
