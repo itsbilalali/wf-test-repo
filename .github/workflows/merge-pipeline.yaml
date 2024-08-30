@@ -1,43 +1,27 @@
-name: Merge PR to Main
+name: Handle PR Label
 
 on:
   pull_request:
     types: [labeled]
-    branches:
-      - dev
 
 jobs:
-  cherry_pick_and_merge:
-    if: github.event.label.name == 'merge-to-main'
+  get-commits:
+    if: github.event.pull_request.state == 'closed' && contains(github.event.pull_request.labels.*.name, 'merge-to-main')
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout the code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Fetch all history for all branches
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Git
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+    - name: Get PR Commits
+      run: |
+        PR_NUMBER=${{ github.event.pull_request.number }}
+        COMMITS=$(gh pr view $PR_NUMBER --json commits --jq '.commits[].commit.message')
+        echo "Commits in PR #${PR_NUMBER}:"
+        echo "$COMMITS"
 
-      - name: Get the PR number and commits
-        id: get_pr_commits
-        run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          PR_COMMITS=$(git log dev --pretty=format:"%H" --grep "Merge pull request #$PR_NUMBER")
-          echo "PR_COMMITS=$PR_COMMITS" >> $GITHUB_ENV
-
-      - name: Checkout main branch
-        run: |
-          git checkout main
-
-      - name: Cherry-pick the PR commits
-        run: |
-          for commit in ${{ env.PR_COMMITS }}; do
-            git cherry-pick $commit
-          done
-
-      - name: Push changes to main
-        run: |
-          git push origin main
+    - name: List PR Commits
+      run: |
+        PR_NUMBER=${{ github.event.pull_request.number }}
+        git fetch origin
+        git log --pretty=format:"%H %s" $(git merge-base origin/main HEAD)..HEAD
