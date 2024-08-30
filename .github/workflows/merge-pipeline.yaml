@@ -22,20 +22,23 @@ jobs:
       - name: Fetch all branches
         run: git fetch --all
 
-      - name: Checkout main branch
-        run: git checkout main
+      - name: Checkout dev branch
+        run: git checkout dev
 
-      - name: Cherry-pick the entire range of PR commits into main
+      - name: Cherry-pick the entire range of PR commits into dev
         run: |
           # Identify the base commit (before the PR) and the head commit (last commit in the PR)
-          # BASE_COMMIT=$(git merge-base origin/dev origin/${{ github.event.pull_request.head.ref }})
-          BASE_COMMIT=${{ github.event.pull_request.base.sha }}
+          BASE_COMMIT=$(git merge-base origin/dev origin/${{ github.event.pull_request.head.ref }})
+          # BASE_COMMIT=${{ github.event.pull_request.base.sha }}
           echo $BASE_COMMIT
 
           HEAD_COMMIT=${{ github.event.pull_request.head.sha }}
           
           # Cherry-pick all commits from the PR range
           git cherry-pick ${BASE_COMMIT}..${HEAD_COMMIT}
+
+      - name: Checkout main branch
+        run: git checkout main
 
       - name: Push changes to main branch
         env:
